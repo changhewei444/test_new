@@ -48,7 +48,7 @@ sed -i 's/192.168.1.1/192.168.6.1/g' package/base-files/files/bin/config_generat
 
 
 # =========================================================
-# 3. Wi-Fi 自动化配置 (开启、改名、设密码)
+# 3. Wi‑Fi 自动化配置 (开启、改名、设密码)
 # =========================================================
 
 # 创建配置脚本目录
@@ -58,16 +58,16 @@ mkdir -p files/etc/uci-defaults
 cat << 'EOF' > files/etc/uci-defaults/99-custom-wifi
 #!/bin/sh
 
-# 1. 默认开启 Wi-Fi (解除 disabled 状态)
+# 1. 默认开启 Wi‑Fi (解除 disabled 状态)
 uci set wireless.@wifi-device[0].disabled='0'
 uci set wireless.@wifi-device[1].disabled='0'
 
-# 2. 配置 5G Wi-Fi (通常是 iface[0]，如果反了就和下面对调)
+# 2. 配置 5G Wi‑Fi (通常是 iface[0]，如果反了就和下面对调)
 uci set wireless.@wifi-iface[0].ssid='Widora_5G'
 uci set wireless.@wifi-iface[0].key='password123'
 uci set wireless.@wifi-iface[0].encryption='psk2'
 
-# 3. 配置 2.4G Wi-Fi
+# 3. 配置 2.4G Wi‑Fi
 uci set wireless.@wifi-iface[1].ssid='Widora_2.4G'
 uci set wireless.@wifi-iface[1].key='password123'
 uci set wireless.@wifi-iface[1].encryption='psk2'
@@ -78,6 +78,30 @@ wifi reload
 
 exit 0
 EOF
+
+
+# =========================================================
+# 4. Mangopi‑M28C(widora_mangopi‑m28c)：添加 sdcard.img.gz TF完整镜像输出
+# =========================================================
+MK_FILE="target/linux/rockchip/image/armv8.mk"
+
+# 先删除原有 widora_mangopi‑m28c 设备块，重新定义，增加 sdcard.img.gz
+sed -i '/define Device\/widora_mangopi-m28c/,/endef/d' "${MK_FILE}"
+
+cat >> "${MK_FILE}" <<'MK_EOF'
+define Device/widora_mangopi-m28c
+  SOC := rk3528
+  DEVICE_DTS := rockchip/rk3528-widora-mangopi-m28c
+  UBOOT_DEVICE_NAME := mangopi-m28c
+  BOOT_FLOW := pine64-img
+  IMAGE/sysupgrade.img.gz := boot-common | boot-script mangopi-m28c | pine64-img | gzip | append-metadata
+  IMAGE/sdcard.img.gz := boot-common | boot-script mangopi-m28c | pine64-img | gzip | append-metadata
+  DEVICE_PACKAGES := $(DEVICE_PACKAGES)
+endef
+TARGET_DEVICES += widora_mangopi-m28c
+MK_EOF
+
+echo ">>> patch armv8.mk done, add widora_mangopi-m28c sdcard.img.gz"
 
 # =========================================================
 # 脚本结束
